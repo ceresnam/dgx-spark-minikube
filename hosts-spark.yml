@@ -1,11 +1,4 @@
 all:
   hosts:
-    spark1:
+    spark:
         ansible_host: 192.168.30.28
-    spark2:
-        ansible_host: 192.168.30.29
-
-spark_servers:
-  hosts:
-    spark1:
-    spark2:

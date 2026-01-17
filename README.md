@@ -7,7 +7,7 @@ Ansible automation project for deploying Kubernetes (Minikube) on NVIDIA DGX Spa
 This project automates the setup of a Kubernetes-based development environment on [NVIDIA DGX Spark](https://build.nvidia.com/spark) workstations powered by the GB10 Grace Blackwell Superchip (ARM64). It configures:
 
 - **Kubernetes** via Minikube for container orchestration
-- **Syncthing** for real-time file synchronization across nodes
+- **Syncthing** for real-time file synchronization between Spark and the workstation
 - **Python 3.12 & 3.14** development environments
 - **System utilities** including AWS S3 tools
 
@@ -18,13 +18,13 @@ Control Machine (WSL/Linux)
     │ (Ansible via SSH)
     ▼
 ┌───────────────────────────────┐     ┌───────────────────────────────┐
-│  DGX Spark 1 (192.168.30.28)  │     │  DGX Spark 2 (192.168.30.29)  │
+│  DGX Spark (192.168.30.28)    │     │  Workstation (192.168.30.XX)  │
 ├───────────────────────────────┤     ├───────────────────────────────┤
-│ • Docker + Minikube           │     │ • Docker + Minikube           │
-│ • kubectl                     │◄───►│ • kubectl                     │
-│ • Python 3.12 + 3.14          │     │ • Python 3.12 + 3.14          │
-│ • Syncthing                   │     │ • Syncthing                   │
-│ • AWS S3 tools                │     │ • AWS S3 tools                │
+│ • Docker + Minikube           │     │ • kubectl                     │
+│ • kubectl                     │◄───►│ • Syncthing                   │
+│ • Python 3.12 + 3.14          │     │ • VS Code                     │
+│ • Syncthing                   │     │                               │
+│ • AWS S3 tools                │     │                               │
 └───────────────────────────────┘     └───────────────────────────────┘
               ▲                                    ▲
               └────── Syncthing File Sync ─────────┘
@@ -32,7 +32,7 @@ Control Machine (WSL/Linux)
 
 ## Prerequisites
 
-- NVIDIA DGX Spark workstation(s) with Docker pre-installed
+- NVIDIA DGX Spark workstation with Docker pre-installed
 - Ansible installed on the control machine
 - SSH access to the DGX Spark systems
 - SSH key at `~/.ssh/spark_ansible_rsa`
@@ -43,8 +43,7 @@ Control Machine (WSL/Linux)
 1. **Generate SSH key** (if not already done):
    ```bash
    ssh-keygen -f ~/.ssh/spark_ansible_rsa
-   ssh-copy-id -i ~/.ssh/spark_ansible_rsa user@<dgx-spark-1-ip>
-   ssh-copy-id -i ~/.ssh/spark_ansible_rsa user@<dgx-spark-2-ip>
+   ssh-copy-id -i ~/.ssh/spark_ansible_rsa user@<dgx-spark-ip>
    ```
 
 2. **Update inventory**:

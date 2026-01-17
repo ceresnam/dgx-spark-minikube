@@ -4,7 +4,7 @@
 #  Setup system
 #
 #############################################################
-- hosts: spark_servers
+- hosts: spark
   become: yes
   tags: system
   tasks:
@@ -20,7 +20,7 @@
         update_cache: true
 
 
-- hosts: spark_servers
+- hosts: spark
   become: yes
   tags: kubernetes
   tasks:
@@ -68,7 +68,7 @@
         daemon_reload: yes
 
 
-- hosts: spark_servers
+- hosts: spark
   become: yes
   tags: syncthing
   tasks:
@@ -94,7 +94,7 @@
         enabled: yes
 
 
-- hosts: spark_servers
+- hosts: spark
   become: yes
   tags: python
   tasks:
