@@ -1,0 +1,129 @@
+---
+#############################################################
+#
+#  Setup system
+#
+#############################################################
+- hosts: spark_servers
+  become: yes
+  tags: system
+  tasks:
+    - name: install required software
+      apt:
+        name:
+          # system software
+          - mc
+          - btop
+          # aws s3
+          - s3cmd
+        state: latest
+        update_cache: true
+
+
+- hosts: spark_servers
+  become: yes
+  tags: kubernetes
+  tasks:
+    - name: permissions - add user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+    - name: kubernetes - install kubectl
+      ansible.builtin.get_url:
+        url: https://dl.k8s.io/release/v1.35.0/bin/linux/arm64/kubectl
+        dest: /usr/local/bin/kubectl
+        mode: '0755'
+    - name: kubernetes - install minikube (1)
+      ansible.builtin.get_url:
+        url: https://github.com/kubernetes/minikube/releases/download/v1.37.0/minikube-linux-arm64
+        dest: /usr/local/bin/minikube
+        mode: '0755'
+    - name: kubernetes - install minikube (2)
+      copy:
+        dest: /etc/systemd/system/minikube@.service
+        content: |
+          [Unit]
+          Description=Minikube Cluster for %i
+          After=docker.service network-online.target
+          Wants=network-online.target
+          Requires=docker.service
+
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          User=%i
+          Group=%i
+          ExecStart=/usr/local/bin/minikube start
+          ExecStop=/usr/local/bin/minikube stop
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '644'
+    - name: kubernetes - install minikube (3)
+      systemd:
+        name: "minikube@{{ ansible_user }}"
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+
+- hosts: spark_servers
+  become: yes
+  tags: syncthing
+  tasks:
+    - name: syncthing - add repo key
+      ansible.builtin.get_url:
+        url: https://syncthing.net/release-key.gpg
+        dest: /etc/apt/trusted.gpg.d/syncthing-release-key.gpg
+        mode: '0644'
+    - name: syncthing - add repo
+      ansible.builtin.apt_repository:
+        repo: deb https://apt.syncthing.net/ syncthing stable
+        state: present
+    - name: syncthing - install
+      apt:
+        name:
+          - syncthing
+        state: latest
+        update_cache: yes
+    - name: syncthing - service
+      systemd:
+        name: "syncthing@{{ ansible_user }}"
+        state: started
+        enabled: yes
+
+
+- hosts: spark_servers
+  become: yes
+  tags: python
+  tasks:
+    - name: pythons - add repo (1)
+      apt:
+        name:
+          - software-properties-common
+        state: latest
+        update_cache: yes
+    - name: pythons - add repo (2)
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-noble.sources
+      register: deadsnakes_repo
+    - name: pythons - add repo (3)
+      shell: |
+        set -e
+        add-apt-repository -y ppa:deadsnakes/ppa
+      when: not deadsnakes_repo.stat.exists
+    - name: pythons - install
+      apt:
+        name:
+          - python3.12
+          - python3.12-venv
+          - python3.12-dev
+          - python3.12-dbg
+          # latest
+          - python3.14
+          - python3.14-venv
+          - python3.14-dev
+          - python3.14-dbg
+        state: latest
+        update_cache: yes
